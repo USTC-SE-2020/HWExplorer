@@ -3,7 +3,7 @@
 
 
 
-#### 项目开发人员:1234
+#### 项目开发人员:
 
 * [袁鹏](https://github.com/indigo-yp)
 * [余森](https://github.com/NathanYu1124)
