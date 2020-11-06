@@ -41,6 +41,11 @@ class TextLineLocator:
         # 读取灰度图像
         src_gray = cv.imread(src_path, 0)
 
+        # 解决windows下中文路径无法读取的问题
+        if (src is None) or (src_gray is None):
+            src = cv.imdecode(np.fromfile(src_path, dtype=np.uint8), -1)
+            src_gray = cv.imdecode(np.fromfile(src_path, dtype=np.uint8), 0)
+
         # Sobel运算
         x = cv.Sobel(src_gray, cv.CV_16S, 1, 0)
         y = cv.Sobel(src_gray, cv.CV_16S, 0, 1)
