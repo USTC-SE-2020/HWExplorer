@@ -1,14 +1,46 @@
 
-
+# Frameworks
 import sys
 import cv2 as cv
 from Tools import FileManager as fm
 from TextLineLocator.YSTextLineLocator import TextLineLocator
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget
 from PyQt5.QtGui import QPalette, QPixmap, QFont, QImage
-from PyQt5.QtCore import Qt, QSize, QTimer, QRect, pyqtSlot, pyqtSignal
+from PyQt5.QtCore import Qt, QSize, QTimer, QRect, pyqtSlot, pyqtSignal, QThread
 from PyQt5.QtWidgets import QPushButton, QWidget, QSpacerItem, QLabel, QFileDialog
 
+
+# 将openCV中的mat转为QT中的QImage
+def convert_mat_To_QImage(mat):
+    shrink = cv.cvtColor(mat, cv.COLOR_BGR2RGB)
+    qImg = QImage(shrink.data,
+                  shrink.shape[1],
+                  shrink.shape[0],
+                  shrink.shape[1] * 3,
+                  QImage.Format_RGB888)
+    return qImg
+
+# 后台处理线程: 继承QThread
+class BackThread(QThread):
+    #  通过类成员对象定义信号对象: object可传任何类型的对象
+    _signal = pyqtSignal(object)
+
+    def __init__(self, img_paths):
+        super(BackThread, self).__init__()
+        self.img_paths = img_paths
+
+    def __del__(self):
+        self.wait()
+
+    # 后台线程处理图像
+    def run(self):
+        locator = TextLineLocator()
+        res_imgs = []
+        for path in self.img_paths:
+            mat_img = locator.locate_textLine_with_cv(path)
+            res_imgs.append(convert_mat_To_QImage(mat_img))
+            # 主线程刷新一次
+            self._signal.emit(res_imgs)
 
 
 # 样式表: 设置控件外观
@@ -16,13 +48,30 @@ Stylesheet = """
 #bottomControlBar {
     background: orange;
 }
+#preBtn {
+    border-radius: 10px;
+    background: red;
+    color: white;
+}
+#preBtn:pressed {
+    background: #FDD56C;
+    color: black;
+}
+#nextBtn {
+    border-radius: 10px;
+    background: red;
+    color: white;
+}
+#nextBtn:pressed {
+    background: #FDD56C;
+    color: black;
+}
 #chooseDirBtn {
     border-radius: 10px;
     background: red;
     color: white;
 }
 #chooseDirBtn:pressed {
-    border-radius: 10px;
     background: #FDD56C;
     color: black;
 }
@@ -31,6 +80,8 @@ Stylesheet = """
 # Global Constants
 Main_Win_Width = 1500
 Main_Win_Height = 1000
+
+
 
 class MainWindow(QMainWindow):
     # 用于控制窗口跳转
@@ -43,13 +94,15 @@ class MainWindow(QMainWindow):
         self.resize(Main_Win_Width,Main_Win_Height)
         self.setMaximumSize(Main_Win_Width, Main_Win_Height)
         self.setMinimumSize(Main_Win_Width, Main_Win_Height)
-        self.center()
-        self.setWindowTitle("HWExplorer")
-        self.setStyleSheet(Stylesheet)
         self.ori_Images = []
         self.res_Images = []
         self.curr_Img_Index = 0
+        self.center()
+        self.setWindowTitle("HWExplorer")
+        self.setStyleSheet(Stylesheet)
         self.initUi()
+        # 初始化后台线程
+        self.backThread = None
 
     # 界面布局
     def initUi(self):
@@ -65,7 +118,6 @@ class MainWindow(QMainWindow):
         self.resImageView.setGeometry(QRect(750, 30, 700, 800))
         self.resImageView.setObjectName("resImageView")
         self.resImageView.setScaledContents(True)
-
 
         # 添加按钮: 选择文件夹
         self.chooseDirBtn = QPushButton(self)
@@ -106,15 +158,11 @@ class MainWindow(QMainWindow):
         size = self.geometry()
         self.move((screen.width() - size.width()) / 2, (screen.height() - size.height()) / 2)
 
-    # 将openCV中的mat转为QT中的QImage
-    def convert_mat_To_QImage(self, mat):
-        shrink = cv.cvtColor(mat, cv.COLOR_BGR2RGB)
-        qImg = QImage(shrink.data,
-                                  shrink.shape[1],
-                                  shrink.shape[0],
-                                  shrink.shape[1] * 3,
-                                  QImage.Format_RGB888)
-        return qImg
+    # 刷新识别结果视图
+    def update_Res_ImageView(self, qImg):
+        self.res_Images = qImg
+        if len(self.res_Images) == 1:
+            self.resImageView.setPixmap(QPixmap.fromImage(self.res_Images[0]))
 
     # 事件响应
     @pyqtSlot()
@@ -127,28 +175,39 @@ class MainWindow(QMainWindow):
             return
         self.oriImageView.setPixmap(QPixmap(self.ori_Images[self.curr_Img_Index]))
         self.numLabel.setText("1 / %d" % len(self.ori_Images))
-        locator = TextLineLocator()
-        for path in self.ori_Images:
-            mat = locator.locate_textLine_with_cv(path)
-            self.res_Images.append(self.convert_mat_To_QImage(mat))
-            if len(self.res_Images) == 1:
-                self.resImageView.setPixmap(QPixmap.fromImage(self.res_Images[self.curr_Img_Index]))
+        self.preBtn.setEnabled(False)
+
+        # 后台线程处理图片
+        self.backThread = BackThread(self.ori_Images)
+        # 设置回调函数
+        self.backThread._signal.connect(self.update_Res_ImageView)
+        # 启动后台线程
+        self.backThread.start()
+
         self.curr_Img_Index += 1
 
     # 选择上一张图片
     def choose_pre_Image(self):
         if self.curr_Img_Index - 1 >= 0:
             self.curr_Img_Index -= 1
+            if self.curr_Img_Index == 0:
+                self.preBtn.setEnabled(False)
+            self.nextBtn.setEnabled(True)
             self.oriImageView.setPixmap(QPixmap(self.ori_Images[self.curr_Img_Index]))
             self.resImageView.setPixmap(QPixmap.fromImage(self.res_Images[self.curr_Img_Index]))
             self.numLabel.setText("%d / %d" % (self.curr_Img_Index, len(self.ori_Images)))
+
 
     # 选择下一张图片
     def choose_next_Image(self):
         if self.curr_Img_Index + 1 < len(self.ori_Images):
             self.curr_Img_Index += 1
+            if self.curr_Img_Index == len(self.ori_Images):
+                self.nextBtn.setEnabled(False)
+            self.preBtn.setEnabled(True)
             self.oriImageView.setPixmap(QPixmap(self.ori_Images[self.curr_Img_Index]))
             self.resImageView.setPixmap(QPixmap.fromImage(self.res_Images[self.curr_Img_Index]))
             self.numLabel.setText("%d / %d" % (self.curr_Img_Index, len(self.ori_Images)))
+
 
 

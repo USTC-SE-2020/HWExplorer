@@ -79,11 +79,13 @@ class TextLineLocator:
             rect_points = np.int0(rect_points)
             cv.drawContours(src_rect, [rect_points], 0, (0, 255, 0), 2)
         # cv.imshow("rect", src_rect)
-        return src_rect
         # # 等待键盘输入
         # k = cv.waitKey(0)
         # if k == 27:
         #     cv.destroyAllWindows()
+
+        return src_rect
+
 
 
 
