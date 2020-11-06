@@ -1,12 +1,13 @@
 
 # Frameworks
 
-from SplashLoading import GifSplashScreen
+# from SplashLoading import GifSplashScreen
 import sys
 import cv2 as cv
 from PyQt5.QtWidgets import QApplication
+from GUI.YSMainWindow import MainWindow
 from PyQt5.QtGui import QPalette, QPixmap, QFont, QMovie
-from PyQt5.QtCore import Qt, QSize, QTimer, QRect, pyqtSlot
+from PyQt5.QtCore import Qt, QSize, QTimer, QRect, pyqtSlot, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QWidget,\
     QGraphicsDropShadowEffect, QPushButton, QGridLayout, QSpacerItem,\
     QSizePolicy, QLabel
@@ -55,6 +56,9 @@ logo_path = "Resources/Images/logo_img.png"
 
 # 自定义无边框Dialog类
 class Dialog(QDialog):
+
+    # 用于控制器控制窗口跳转
+    switch_window = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super(Dialog, self).__init__(*args, **kwargs)
@@ -123,30 +127,10 @@ class Dialog(QDialog):
     def accept(self):
         sys.exit()
 
-    # 事件相应
+    # 事件响应
     @pyqtSlot()
+    # 跳转到主窗口
     def show_mainWindow(self):
-        print("PyQt5 button click")
-        splash = GifSplashScreen()
-        splash.show()
-        splash.showMessage('等待创建界面', Qt.AlignHCenter | Qt.AlignBottom, Qt.white)
-
-        def createWindow():
-            app.w = QWidget()
-            # 模拟初始5秒后再显示
-            splash.showMessage('等待界面显示', Qt.AlignHCenter | Qt.AlignBottom, Qt.white)
-            QTimer.singleShot(3000, lambda: (
-                splash.showMessage('初始化完成', Qt.AlignHCenter | Qt.AlignBottom, Qt.white), app.w.show(),
-                splash.finish(app.w)))
-
-        QTimer.singleShot(3000, createWindow)
-        self.hide()
+        self.switch_window.emit()
 
 
-if __name__ == '__main__':
-
-    app = QApplication(sys.argv)
-    w = Dialog()
-    w.exec_()
-    # QTimer.singleShot(3000, app.quit)
-    sys.exit(app.exec_())
