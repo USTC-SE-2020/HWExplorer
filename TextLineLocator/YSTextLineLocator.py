@@ -40,7 +40,6 @@ class TextLineLocator:
         src = cv.imread(src_path)
         # 读取灰度图像
         src_gray = cv.imread(src_path, 0)
-
         # 解决windows下中文路径无法读取的问题
         if (src is None) or (src_gray is None):
             src = cv.imdecode(np.fromfile(src_path, dtype=np.uint8), -1)
@@ -59,22 +58,18 @@ class TextLineLocator:
         # 闭运算
         element = cv.getStructuringElement(cv.MORPH_RECT, (20, 2))
         src_closed = cv.morphologyEx(src_threshold, cv.MORPH_CLOSE, element)
-        # cv.imshow("close", src_closed)
 
         # 开运算
         elem_opening = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
         src_opening = cv.morphologyEx(src_closed, cv.MORPH_OPEN, elem_opening)
-        # cv.imshow("opening", src_opening)
 
         # 提取外部轮廓
         src_contours = src_gray.copy()
-        # CHAIN_APPROX_NONE
         contours_list, hierarchy = cv.findContours(src_opening, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
         # 去除不符合条件的轮廓
         contours_list = self.remove_improper_contours(contours_list)
         cv.drawContours(src_contours, contours_list, -1, (0, 0, 255), 3)
-        # cv.imshow("contours", src_contours)
 
         # 取轮廓的外接矩形
         src_rect = src.copy()
@@ -83,13 +78,18 @@ class TextLineLocator:
             rect_points = cv.boxPoints(rotated_rect)
             rect_points = np.int0(rect_points)
             cv.drawContours(src_rect, [rect_points], 0, (0, 255, 0), 2)
-        # cv.imshow("rect", src_rect)
-        # # 等待键盘输入
-        # k = cv.waitKey(0)
-        # if k == 27:
-        #     cv.destroyAllWindows()
 
-        return src_rect
+        # 保存中间处理的所有图像
+        img_list = []
+        img_list.append(src)
+        img_list.append(src_gray)
+        img_list.append(src_sobel)
+        img_list.append(src_threshold)
+        img_list.append(src_closed)
+        img_list.append(src_contours)
+        img_list.append(src_rect)
+
+        return img_list
 
 
 
