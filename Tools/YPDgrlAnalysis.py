@@ -74,7 +74,7 @@ def read_from_dgrl(dgrl):
 
             # 保存信息
             label_file = os.path.join(label_dir, base_name.replace('.dgrl', '_' + str(k) + '.txt'))
-            with open(label_file, 'w') as f1:
+            with open(label_file, 'w', encoding='UTF-8') as f1:
                 f1.write(label)
             bitmap_file = os.path.join(image_dir, base_name.replace('.dgrl', '_' + str(k) + '.jpg'))
             im.save(bitmap_file)
