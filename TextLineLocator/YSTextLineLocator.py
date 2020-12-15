@@ -5,13 +5,6 @@ import numpy as np
 
 Min_Contours_Area = 15 * 15
 
-"""
-    TODO:
-        倾斜矫正
-        1. 轮廓调整: 根据上下两个轮廓之间的空隙中的黑点的数量来判断是否应去除空隙中的连接线
-        2. 轮廓调整: 结合直方图分布再次判断划分点
-        合并小轮廓
-"""
 class TextLineLocator:
 
     # 初始化
@@ -38,6 +31,7 @@ class TextLineLocator:
     def locate_textLine_with_cv(self, src_path):
         # 读取RGB图像
         src = cv.imread(src_path)
+
         # 读取灰度图像
         src_gray = cv.imread(src_path, 0)
         # 解决windows下中文路径无法读取的问题
@@ -59,13 +53,13 @@ class TextLineLocator:
         element = cv.getStructuringElement(cv.MORPH_RECT, (20, 2))
         src_closed = cv.morphologyEx(src_threshold, cv.MORPH_CLOSE, element)
 
-        # 开运算
-        elem_opening = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
-        src_opening = cv.morphologyEx(src_closed, cv.MORPH_OPEN, elem_opening)
+        # # 开运算
+        # elem_opening = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+        # src_opening = cv.morphologyEx(src_closed, cv.MORPH_OPEN, elem_opening)
 
         # 提取外部轮廓
         src_contours = src_gray.copy()
-        contours_list, hierarchy = cv.findContours(src_opening, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+        contours_list, hierarchy = cv.findContours(src_closed, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)[-2:]
 
         # 去除不符合条件的轮廓
         contours_list = self.remove_improper_contours(contours_list)
@@ -73,23 +67,49 @@ class TextLineLocator:
 
         # 取轮廓的外接矩形
         src_rect = src.copy()
+        roi_imgs = []
         for contours in contours_list:
             rotated_rect = cv.minAreaRect(contours)
             rect_points = cv.boxPoints(rotated_rect)
             rect_points = np.int0(rect_points)
+            xs = [x[1] for x in rect_points]
+            ys = [y[0] for y in rect_points]
+            # 忽略外接矩形在图像外的子区域
+            if (min(xs) < 0) or (max(xs) < 0) or (min(ys) < 0) or (max(ys) < 0):
+                continue
+            src_roi = src[min(xs):max(xs), min(ys):max(ys)]         # 截取外接矩形区域
+            roi_imgs.append(src_roi)
             cv.drawContours(src_rect, [rect_points], 0, (0, 255, 0), 2)
+        return src_rect, roi_imgs   # 画出文本行轮廓的图, 文本行图像list
 
-        # 保存中间处理的所有图像
-        img_list = []
-        img_list.append(src)
-        img_list.append(src_gray)
-        img_list.append(src_sobel)
-        img_list.append(src_threshold)
-        img_list.append(src_closed)
-        img_list.append(src_contours)
-        img_list.append(src_rect)
 
-        return img_list
+
+
+# TODO: 测试
+
+# /Users/soyou/Desktop/11/23D3AE31C8A3236C664222100D69ADDC.jpg
+# /Users/soyou/Desktop/11/48E4C457ECE1B94C6588B9E9DF061C3F.jpg
+# /Users/soyou/Desktop/11/364EADA55771093126867349F22C3326.jpg
+# /Users/soyou/Desktop/11/B38FADCBF661A2AA7392EE5CB2F6F22F.jpg
+# /Users/soyou/Desktop/11/D56BDE7494C9C1495EDC1AE084303601.jpg
+# /Users/soyou/Desktop/11/D05123EAFBF9542B944F801F1037F674.jpg
+# /Users/soyou/Desktop/11/FE2BD83D5351148175B35F507BD19066.jpg
+
+
+img_path = "/Users/soyou/Desktop/11/FE2BD83D5351148175B35F507BD19066.jpg"
+locater = TextLineLocator()
+rect, _ = locater.locate_textLine_with_cv(img_path)
+cv.imshow("1", rect)
+#
+# for i, img in enumerate(roi_imgs):
+#     cv.imshow("roi{}".format(i), img)
+
+k = cv.waitKey(0)
+if k == 27:
+    cv.destroyAllWindows()
+
+
+
 
 
 

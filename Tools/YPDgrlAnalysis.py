@@ -5,7 +5,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 
 # 这里改成自己存放dgrl的文件夹路径，可以先用少量dgrl文件测试一下
-Data_path = "F:/研一上学期/工程实践准备/dataset/HWDB2.0Test"
+Data_path = "/Users/soyou/Desktop/工程实践/数据集/HWDB/HWDB2.0Train"
 files = os.listdir(Data_path)
 
 
@@ -85,5 +85,6 @@ def main():
         read_from_dgrl(Data_path + "/" + file)
 
 
-if __name__ == main():
+
+if __name__ == '__main__':
     main()

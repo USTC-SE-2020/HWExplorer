@@ -5,7 +5,7 @@ import os
 
 
 
-# 获取当前目录路径
+# 获取当前目录路径: 项目所在路径/Tools
 def get_Curr_Dir():
     return os.getcwd()
 
@@ -31,5 +31,3 @@ def get_Images_In_Dir(dir_path, img_list):
         # 处理文件夹, 递归
         if os.path.isdir(file_path):
             get_Images_In_Dir(file_path, img_list)
-
-

@@ -6,6 +6,8 @@ __pycache__/
 # MacOS忽略文件
 .DS_Store 
 */.DS_Store 
+*.h5
+
 
 # C extensions
 *.so
