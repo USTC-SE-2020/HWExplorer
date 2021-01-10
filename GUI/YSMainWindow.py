@@ -94,8 +94,6 @@ Stylesheet = """
 
 # TODO: 程序主窗口(左侧菜单栏+右侧内容区域)
 class MainWindow(QMainWindow):
-    # TODO: 用于控制窗口跳转, 保留????
-    # switch_window = pyqtSignal()
 
     # 初始化
     def __init__(self, *args, **kwargs):
