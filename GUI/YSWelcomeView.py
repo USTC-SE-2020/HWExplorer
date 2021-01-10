@@ -1,19 +1,12 @@
 
 # Frameworks
 
-# from SplashLoading import GifSplashScreen
 import sys
-import cv2 as cv
-from PyQt5.QtWidgets import QApplication
-from GUI.YSMainWindow import MainWindow
-from PyQt5.QtGui import QPalette, QPixmap, QFont, QMovie
 from PyQt5.QtCore import Qt, QSize, QTimer, QRect, pyqtSlot, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QWidget,\
     QGraphicsDropShadowEffect, QPushButton, QGridLayout, QSpacerItem,\
     QSizePolicy, QLabel
 
-# 04040F  FDD56C
-# 样式表: 设置控件外观
 Stylesheet = """
 #Custom_Widget {
     background: #F7F5EE;
@@ -87,11 +80,11 @@ Stylesheet = """
 """
 
 
-# 自定义无边框Dialog类
+# TODO: 程序启动界面,自定义无边框Dialog类
 class Dialog(QDialog):
 
-    # 用于控制器控制窗口跳转
-    switch_window = pyqtSignal()
+    switch_window = pyqtSignal()            # 主窗口, 用于控制器控制窗口跳转
+    admin_window = pyqtSignal()             # 管理员窗口, 用于控制器控制窗口跳转
 
     def __init__(self, *args, **kwargs):
         super(Dialog, self).__init__(*args, **kwargs)
@@ -99,6 +92,7 @@ class Dialog(QDialog):
         self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setWindowTitle("HWExplorer")
+        self.login_mode = "user"                 # 用户模式为默认登陆选项
         self.setStyleSheet(Stylesheet)
         self.initUi()
         # 添加阴影
@@ -164,7 +158,6 @@ class Dialog(QDialog):
         self.right_circle_index.setGeometry(QRect(150, 160, 10, 10))
         self.right_circle_index.setObjectName("RightCircleIndex")
         self.right_circle_index.setStyleSheet("background: red; border-radius: 5px;")
-        self.login_mode = "user"        # 用户模式为默认登陆选项
 
         # 添加开始按钮
         self.StartButton = QPushButton(self.widget)
@@ -172,7 +165,6 @@ class Dialog(QDialog):
         self.StartButton.setObjectName("StartButton")
         self.StartButton.setText("Get Started")
         self.StartButton.clicked.connect(self.show_mainWindow)
-
 
         layout.addWidget(self.widget)
         # 在widget中添加ui
@@ -193,9 +185,13 @@ class Dialog(QDialog):
 
     # 事件响应
     @pyqtSlot()
-    # 跳转到主窗口
+    # 窗口跳转
     def show_mainWindow(self):
-        self.switch_window.emit()
+
+        if self.login_mode == "user":
+            self.switch_window.emit()   # 用户模式, 跳转到主界面
+        else:
+            self.admin_window.emit()    # 管理员模式, 跳转到管理员界面
 
     # 切换到管理员登陆模式
     def change_to_admin_mode(self):

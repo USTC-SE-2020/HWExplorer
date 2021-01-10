@@ -1,9 +1,6 @@
 
 
-# GUI配置文件
-
-
-
+# TODO: GUI配置文件
 Main_Win_Width = 1500                                           # 主窗口宽度
 Main_Win_Height = 1000                                          # 主窗口高度
 Left_Menu_Bar_Width = 80                                        # 主窗口左侧菜单栏宽度

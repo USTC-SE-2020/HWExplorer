@@ -3,6 +3,8 @@
 import cv2 as cv
 import numpy as np
 
+from GUI.config import Locate_Show_Area_Width, Locate_Show_Area_Height
+
 Min_Contours_Area = 15 * 15
 
 class TextLineLocator:
@@ -17,6 +19,30 @@ class TextLineLocator:
         # 灰度直方图均衡
         img = cv.equalizeHist(img)
 
+    # 移除图像中的水平和垂直线
+    def remove_all_lines(self, image):
+        result = image.copy()
+        # 1.转换成灰度图
+        gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+        # 2.Otsu's二值化
+        thresh = cv.threshold(gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)[1]
+        # 3.用水平kernel检测灰度图中的水平线: (Width, Height)
+        horizontal_kernel = cv.getStructuringElement(cv.MORPH_RECT, (25, 1))
+        remove_horizontal = cv.morphologyEx(thresh, cv.MORPH_OPEN, horizontal_kernel, iterations=2)
+        cnts = cv.findContours(remove_horizontal, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+        for c in cnts:
+            cv.drawContours(result, [c], -1, (255, 255, 255), 2)  # TODO: 填充水平线, 用背景色???
+        # 4.用垂直kernel检测灰度图中的垂直线: (Height, Width)
+        vertical_kernel = cv.getStructuringElement(cv.MORPH_RECT, (1, 25))
+        remove_vertical = cv.morphologyEx(thresh, cv.MORPH_OPEN, vertical_kernel, iterations=2)
+        cnts = cv.findContours(remove_vertical, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+        for c in cnts:
+            cv.drawContours(result, [c], -1, (255, 255, 255), 2)  # TODO: 填充水平线, 用背景色???
+
+        return result
+
     # 移除不符合条件的轮廓
     def remove_improper_contours(self, contours):
         res_contours = []
@@ -27,11 +53,49 @@ class TextLineLocator:
             res_contours.append(cont)
         return res_contours
 
+
+    def locate_textline(self, src_path):
+
+        src = cv.imread(src_path)       # 读取RGB图像
+        if src is None:                 # 解决windows下中文路径无法读取的问题
+            src = cv.imdecode(np.fromfile(src_path, dtype=np.uint8), -1)
+
+        src_nolines = self.remove_all_lines(src)    # 移除图像中的水平和垂直线, 返回RGB图像
+        cv.imshow("line", src_nolines)
+        cv.imshow("1", src)
+        src_noline_gray = cv.cvtColor(src_nolines, cv.COLOR_BGR2GRAY)   # 图像灰度化
+
+        # 二值化
+        src_thresh = cv.threshold(src_noline_gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)[1]
+        cv.imshow("thresh", src_thresh)
+
+        # 闭运算找文字
+        element = cv.getStructuringElement(cv.MORPH_RECT, (15, 3))
+        src_closed = cv.morphologyEx(src_thresh, cv.MORPH_CLOSE, element)
+        cv.imshow("texts", src_closed)
+
+        # 取轮廓
+        cnts = cv.findContours(src_closed, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+        cnts = self.remove_improper_contours(cnts)          #  去除不合适的轮廓
+
+        for c in cnts:
+            rotated_rect = cv.minAreaRect(c)
+            rect_points = cv.boxPoints(rotated_rect)
+            rect_points = np.int0(rect_points)
+            cv.drawContours(src, [rect_points], 0, (0, 255, 0), 2)
+
+        cv.imshow("res", src)
+        k = cv.waitKey(0)
+        if k == 27:
+            cv.destroyAllWindows()
+        pass
+
+
     # 基于openCV定位文本行
     def locate_textLine_with_cv(self, src_path):
         # 读取RGB图像
         src = cv.imread(src_path)
-
         # 读取灰度图像
         src_gray = cv.imread(src_path, 0)
         # 解决windows下中文路径无法读取的问题
@@ -67,46 +131,37 @@ class TextLineLocator:
 
         # 取轮廓的外接矩形
         src_rect = src.copy()
-        roi_imgs = []
+        roi_imgs = []                           # 轮廓图像list
+        roi_rects = []                          # 轮廓图像坐标,对应PyQt5中的QRect: [(x, y, width, height)]
         for contours in contours_list:
             rotated_rect = cv.minAreaRect(contours)
             rect_points = cv.boxPoints(rotated_rect)
             rect_points = np.int0(rect_points)
-            xs = [x[1] for x in rect_points]
-            ys = [y[0] for y in rect_points]
+            xs = [x[1] for x in rect_points]            # y
+            ys = [y[0] for y in rect_points]            # x
             # 忽略外接矩形在图像外的子区域
             if (min(xs) < 0) or (max(xs) < 0) or (min(ys) < 0) or (max(ys) < 0):
                 continue
             src_roi = src[min(xs):max(xs), min(ys):max(ys)]         # 截取外接矩形区域
             roi_imgs.append(src_roi)
+
+            # OpenCV mat shape: (Height, Width, Channels)
+            # 重新按比例计算(x, y, width, height) <=> (min(ys), min(xs), (max(ys)-min(ys)), (max(xs)-min(xs))
+            x_loc = int((min(ys) / src.shape[1]) * Locate_Show_Area_Width)                             # 文本行显示区域 x
+            y_loc = int((min(xs) / src.shape[0]) * Locate_Show_Area_Height)                            # 文本行显示区域 y
+            new_width = int(((max(ys)-min(ys)) / src.shape[1]) * Locate_Show_Area_Width)         # 文本行显示区域 width
+            new_height = int(((max(xs)-min(xs)) / src.shape[0]) * Locate_Show_Area_Height)       # 文本行显示区域 height
+
+            roi_rects.append((x_loc, y_loc, new_width + 20, new_height + 10))                    # (x, y, width, height)
             cv.drawContours(src_rect, [rect_points], 0, (0, 255, 0), 2)
-        return src_rect, roi_imgs   # 画出文本行轮廓的图, 文本行图像list
+
+        roi_imgs = roi_imgs[::-1]
+        roi_rects = roi_rects[::-1]
+
+        return src_rect, roi_imgs, roi_rects   # 画出文本行轮廓的图, 文本行图像list, 轮廓图像坐标[(x, y, width, height)]
 
 
 
-
-# TODO: 测试
-
-# /Users/soyou/Desktop/11/23D3AE31C8A3236C664222100D69ADDC.jpg
-# /Users/soyou/Desktop/11/48E4C457ECE1B94C6588B9E9DF061C3F.jpg
-# /Users/soyou/Desktop/11/364EADA55771093126867349F22C3326.jpg
-# /Users/soyou/Desktop/11/B38FADCBF661A2AA7392EE5CB2F6F22F.jpg
-# /Users/soyou/Desktop/11/D56BDE7494C9C1495EDC1AE084303601.jpg
-# /Users/soyou/Desktop/11/D05123EAFBF9542B944F801F1037F674.jpg
-# /Users/soyou/Desktop/11/FE2BD83D5351148175B35F507BD19066.jpg
-
-
-img_path = "/Users/soyou/Desktop/11/FE2BD83D5351148175B35F507BD19066.jpg"
-locater = TextLineLocator()
-rect, _ = locater.locate_textLine_with_cv(img_path)
-cv.imshow("1", rect)
-#
-# for i, img in enumerate(roi_imgs):
-#     cv.imshow("roi{}".format(i), img)
-
-k = cv.waitKey(0)
-if k == 27:
-    cv.destroyAllWindows()
 
 
 

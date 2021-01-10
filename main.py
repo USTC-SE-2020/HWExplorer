@@ -10,7 +10,6 @@ def main():
     # 2.初始化单例对象
     recognizer = Recognizer()
 
-
 # 程序入口
 if __name__ == '__main__':
     main()

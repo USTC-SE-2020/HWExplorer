@@ -1,6 +1,5 @@
 
 
-# TODO: 文本行识别页面
 from PyQt5.QtWidgets import QPushButton, QWidget, QLabel, QFileDialog
 from PyQt5.QtCore import Qt, QSize, QTimer, QRect, pyqtSlot
 from PyQt5.QtGui import QPixmap
@@ -77,9 +76,7 @@ LRViewStylesheet = """
 """
 
 
-
-
-# 视图尺寸:
+# TODO: 文本行识别页面
 class LineRecognizeView(QWidget):
 
     def __init__(self, *args, **kwargs):
@@ -128,23 +125,29 @@ class LineRecognizeView(QWidget):
         self.bottom_text_label.setGeometry(QRect(150, 350, 1000, 100))
         self.bottom_text_label.setObjectName("Bottom_Text_Label")
         self.bottom_text_label.setAlignment(Qt.AlignCenter)
+
         # 添加下方控制栏
         self.bottom_control_bar = QWidget(self.show_area_widget)
         self.bottom_control_bar.setGeometry(QRect(350, 740, 600, 60))
         self.bottom_control_bar.setObjectName("Bottom_Control_Bar")
+
+        # AR Label
+        self.ar_label = QLabel(self.bottom_control_bar)
+        self.ar_label.setGeometry(QRect(200, 0, 200, 60))
+        self.ar_label.setAlignment(Qt.AlignCenter)
+        self.ar_label.setObjectName("AR_Label")
+
         # 添加当前数量Label
         self.num_label = QLabel(self.bottom_control_bar)
         self.num_label.setGeometry(QRect(200, 0, 200, 60))
         self.num_label.setAlignment(Qt.AlignCenter)
         self.num_label.setObjectName("Num_Label")
-        # 定位总时长Label
-        self.total_time_label = QLabel(self.bottom_control_bar)
-        self.total_time_label.setGeometry(QRect(150, 0, 120, 60))
-        self.total_time_label.setObjectName("Total_Time_Label")
-        # 定位平均时长Label
-        self.aver_time_label = QLabel(self.bottom_control_bar)
-        self.aver_time_label.setGeometry(QRect(370, 0, 120, 60))
-        self.aver_time_label.setObjectName("Aver_Time_Label")
+
+        # CR Label
+        self.cr_label = QLabel(self.bottom_control_bar)
+        self.cr_label.setGeometry(QRect(200, 0, 200, 60))
+        self.cr_label.setAlignment(Qt.AlignCenter)
+        self.cr_label.setObjectName("CR_Label")
 
         # 按钮: 上一张
         self.preBtn = QPushButton(self.bottom_control_bar)
@@ -159,7 +162,6 @@ class LineRecognizeView(QWidget):
         self.nextBtn.setText("下一张")
         self.nextBtn.clicked.connect(self.choose_next_Image)
 
-
     # 事件响应
     @pyqtSlot()
     # 选择上一张图像
@@ -167,18 +169,16 @@ class LineRecognizeView(QWidget):
         if self.start_flag and self.curr_img_index - 1 >= 0:
             self.curr_img_index -= 1
             self.top_image_view.setPixmap(QPixmap(self.line_img_paths[self.curr_img_index]))                # 更新文本行图像
-            self.bottom_text_label.setText(self.res_texts[self.curr_img_index][0])                             # 更新对应的识别文字
+            self.bottom_text_label.setText(self.res_texts[self.curr_img_index][0])                          # 更新对应的识别文字
             self.num_label.setText("{} / {}".format(self.curr_img_index + 1, len(self.line_img_paths)))     # 更新当前位置
-            # 显示新的对应的识别文字
 
     # 选择下一张图像
     def choose_next_Image(self):
         if self.start_flag and self.curr_img_index + 1 < len(self.line_img_paths) and self.curr_img_index + 1 < len(self.res_texts):
             self.curr_img_index += 1
             self.top_image_view.setPixmap(QPixmap(self.line_img_paths[self.curr_img_index]))                # 更新文本行图像
-            self.bottom_text_label.setText(self.res_texts[self.curr_img_index][0])                             # 更新对应的识别文字
+            self.bottom_text_label.setText(self.res_texts[self.curr_img_index][0])                          # 更新对应的识别文字
             self.num_label.setText("{} / {}".format(self.curr_img_index + 1, len(self.line_img_paths)))     # 更新当前位置
-
 
     # 选择文件夹
     def choose_diretory(self):
@@ -203,7 +203,6 @@ class LineRecognizeView(QWidget):
         self.recogBackThread = RecogBackThread(self.line_img_paths, type="path")            # 初始化识别后台进程
         self.recogBackThread._signal.connect(self.update_texts_in_textView)                 # 设置回调函数
         self.recogBackThread.start()                                                        # 启动后台线程
-
 
     # 回调函数: 更新识别结果数组
     def update_texts_in_textView(self, texts):

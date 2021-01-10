@@ -5,7 +5,7 @@ from GUI.YSViewController import Controller
 from PyQt5.QtWidgets import QApplication
 
 
-# 启动GUI
+# TODO: GUI入口, 启动GUI
 def start_GUI_Window():
     app = QApplication(sys.argv)
     controller = Controller()

@@ -21,11 +21,9 @@ with open(TABLE_PATH, 'w', encoding='utf-8') as fw:
 #字符数
 NUM_CLASSES = len(chardic) + 3
 
-
 #数据集参数
 BATCH_SIZE = 256
 BUFFER_SIZE = 10000
-
 
 #模型保存与否
 is_save_model = False

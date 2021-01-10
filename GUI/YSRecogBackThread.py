@@ -4,7 +4,7 @@ from PyQt5.QtCore import  pyqtSignal, QThread
 from TextLineRecognizer.YSRecognizer import Recognizer
 
 
-# 识别后台处理线程: 继承QThread
+# TODO: 识别后台处理线程: 继承QThread
 class RecogBackThread(QThread):
     #  通过类成员对象定义信号对象: object可传任何类型的对象
     _signal = pyqtSignal(object)

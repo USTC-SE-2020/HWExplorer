@@ -1,13 +1,9 @@
 
-
-# TODO: 关于页面
-import time
-from PyQt5.QtWidgets import QPushButton, QWidget, QLabel, QFileDialog
-from PyQt5.QtCore import Qt, QSize, QTimer, QRect, pyqtSlot
-from PyQt5.QtGui import QPixmap, QImage
-
-from Tools import FileManager as fm
+from PyQt5.QtWidgets import QPushButton, QWidget, QLabel
+from PyQt5.QtCore import Qt, QRect, pyqtSlot
 from GUI.config import *
+import webbrowser
+
 
 AboutStyleSheet = """
 #Content_View {
@@ -77,13 +73,29 @@ AboutStyleSheet = """
     font-weight: bold;
 }
 #Github_Link {
+    border-radius: 10px;
+    font-size: 15px;
+    background: #FDD56C;
+    color: black;
+}
+#Github_Link:pressed {
+    background: #0E0D0C;
     color: white;
-    background: transparent;
-    font-family: "Times";
-    font-size: 18px;
+}
+#Update_Link {
+    border-radius: 10px;
+    font-size: 15px;
+    background: #FDD56C;
+    color: black;
+}
+#Update_Link:pressed {
+    background: #0E0D0C;
+    color: white;
 }
 """
 
+
+# TODO: 关于页面
 class AboutView(QWidget):
 
     def __init__(self, *args, **kwargs):
@@ -91,10 +103,8 @@ class AboutView(QWidget):
         self.setStyleSheet(AboutStyleSheet)         # 初始化GUI样式
         self.initUi()                               # 初始化GUI布局
 
-
     # 界面布局
     def initUi(self):
-
         # 内容视图, 管理所有的子视图
         self.content_view = QWidget(self)
         self.content_view.setObjectName("Content_View")
@@ -138,21 +148,38 @@ class AboutView(QWidget):
         self.team_detail_label = QLabel(self.detail_area_widget)
         self.team_detail_label.setObjectName("Team_Detail_Label")
         self.team_detail_label.setGeometry(QRect(200, 330, 300, 80))
-        self.team_detail_label.setText("余森, 袁鹏, 姚劲嵩, 袁欣卓")
+        self.team_detail_label.setText("余森,  袁鹏,  姚劲嵩,  袁欣卓")
         # 关于我们
         self.about_us_label = QLabel(self.detail_area_widget)
         self.about_us_label.setObjectName("About_Us_Label")
         self.about_us_label.setGeometry(QRect(200, 400, 100, 80))
         self.about_us_label.setText("关于我们: ")
-        # 项目地址
-        self.github_link = QLabel(self.detail_area_widget)
+        # 超链接: 项目地址
+        self.github_link = QPushButton(self.detail_area_widget)
         self.github_link.setObjectName("Github_Link")
-        self.github_link.setGeometry(QRect(200, 440, 100, 80))
-        self.github_link.setOpenExternalLinks(True)
-        self.github_link.setText("<a href={0}>{1}</a>".format("https://github.com/USTC-SE-2020/HWExplorer", "项目地址"))
+        self.github_link.setGeometry(QRect(200, 470, 100, 40))
+        self.github_link.setText("项目地址")
+        self.github_link.clicked.connect(self.open_github_link)
+        # 超链接: 更新日志
+        self.update_link = QPushButton(self.detail_area_widget)
+        self.update_link.setObjectName("Update_Link")
+        self.update_link.setGeometry(QRect(350, 470, 100, 40))
+        self.update_link.setText("更新日志")
+        self.update_link.clicked.connect(self.open_update_log_hyperlink)
 
         # 版权label
         self.copyright_label = QLabel(self.detail_area_widget)
         self.copyright_label.setObjectName("CopyRight_Label")
-        self.copyright_label.setGeometry(QRect(770, 435, 200, 80))
+        self.copyright_label.setGeometry(QRect(770, 450, 200, 80))
         self.copyright_label.setText("©️USTC-2020-bd03")
+
+    @pyqtSlot()
+    # 打开 更新日志 超链接
+    def open_update_log_hyperlink(self):
+        url = 'https://github.com/USTC-SE-2020/HWExplorer'
+        webbrowser.open_new_tab(url)
+
+    # 打开 github地址 超链接
+    def open_github_link(self):
+        url = 'https://github.com/USTC-SE-2020/HWExplorer'
+        webbrowser.open_new_tab(url)
